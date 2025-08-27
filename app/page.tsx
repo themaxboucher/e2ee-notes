@@ -19,7 +19,7 @@ export default function Home() {
             <h2 className="heading-3">Privacy for your ideas.</h2>
             <p className="text-muted-foreground">
               Take notes secured with end-to-end encryption. That means no one
-              else can read them, not even us.
+              else can read them (not even us).
             </p>
           </div>
         </BlurFade>

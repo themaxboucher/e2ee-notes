@@ -9,6 +9,7 @@ import { Form } from "./ui/form";
 import FormAlert from "./FormAlert";
 import { Button } from "./ui/button";
 import { TextField } from "./form-fields/TextField";
+import { sendMagicLink } from "@/lib/appwrite/client";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email" }),
@@ -27,8 +28,15 @@ export default function AuthForm() {
   });
 
   async function onSubmitHandler(data: z.infer<typeof formSchema>) {
-    console.log(data);
-    setSuccess(true);
+    setLoading(true);
+    try {
+      await sendMagicLink(data.email);
+      setSuccess(true);
+    } catch (error) {
+      setError("An unknown error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
   return (
     <Form {...form}>

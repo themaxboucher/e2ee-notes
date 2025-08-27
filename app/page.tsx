@@ -13,7 +13,7 @@ export default function Home() {
         </div>
         <ThemeSelector />
       </header>
-      <main className="flex flex-col gap-8 items-center min-h-screen px-10 pt-[25vh]">
+      <main className="flex flex-col gap-8 items-center min-h-[calc(100vh-68px)] px-10 pt-[25vh]">
         <BlurFade direction="up">
           <div className="text-center space-y-2 max-w-md">
             <h2 className="heading-3">Privacy for your ideas.</h2>

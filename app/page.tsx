@@ -1,9 +1,45 @@
+"use client";
+
 import { ThemeSelector } from "@/components/ThemeSelector";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, LoaderCircle } from "lucide-react";
 import AuthForm from "@/components/AuthForm";
 import { BlurFade } from "@/components/magicui/blur-fade";
+import { useEffect, useState } from "react";
+import { getCurrentSession } from "@/lib/appwrite/client";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const handleGetCurrentSession = async () => {
+      try {
+        const session = await getCurrentSession();
+        if (session) {
+          router.replace("/notes");
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+        // User is not authenticated, stay on homepage
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    handleGetCurrentSession();
+  }, [router]);
+
+  // Show loading state while checking session
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-screen flex justify-center items-center">
+        <div className="flex flex-col items-center justify-center gap-4">
+          <LoaderCircle className="size-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <header className="flex gap-8 items-center justify-between w-full px-10 py-4">

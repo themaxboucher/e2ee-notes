@@ -31,8 +31,12 @@ function VerifyContent() {
 
         await loginWithMagicLink(userId, secret);
         setStatus("success");
-        router.refresh();
-        router.push("/notes");
+
+        // Add a small delay to ensure the session is properly established
+        // This prevents flashing of the homepage during redirect
+        setTimeout(() => {
+          router.push("/notes");
+        }, 300);
       } catch (err) {
         setStatus("error");
         setError("An unknown error occurred. Please try again.");
@@ -44,8 +48,22 @@ function VerifyContent() {
 
   return (
     <div className="flex flex-col items-center justify-center gap-4">
-      {(status === "loading" || status === "success") && (
-        <LoaderCircle className="size-8 animate-spin text-primary" />
+      {status === "loading" && (
+        <>
+          <LoaderCircle className="size-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            Verifying your login...
+          </p>
+        </>
+      )}
+
+      {status === "success" && (
+        <>
+          <LoaderCircle className="size-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            Login successful! Redirecting...
+          </p>
+        </>
       )}
 
       {status === "error" && (
@@ -75,6 +93,7 @@ export default function VerifyPage() {
         fallback={
           <div className="flex flex-col items-center justify-center gap-4">
             <LoaderCircle className="size-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading...</p>
           </div>
         }
       >

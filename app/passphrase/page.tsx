@@ -1,7 +1,11 @@
+"use client";
+
 import { BlurFade } from "@/components/magicui/blur-fade";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { ShieldCheck } from "lucide-react";
 import PassphraseForm from "@/components/PassphraseForm";
+import DekPlayground from "@/components/DekPlayground";
+import { DekProvider } from "@/components/DekProvider";
 
 export default function PassphrasePage() {
   return (
@@ -31,6 +35,9 @@ export default function PassphrasePage() {
         >
           <PassphraseForm />
         </BlurFade>
+        <DekProvider>
+          <DekPlayground />
+        </DekProvider>
       </main>
     </div>
   );

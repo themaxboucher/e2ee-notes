@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   LogOut,
@@ -9,6 +9,8 @@ import {
   Search,
   Trash2,
   ArrowLeft,
+  Check,
+  Info,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -21,79 +23,62 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentSession, logout } from "@/lib/appwrite/client";
-
-type Note = {
-  id: string;
-  title: string;
-  content: string;
-  updatedAt: number;
-};
-
-function formatDate(timestamp: number) {
-  const date = new Date(timestamp);
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-}
+import { formatDate } from "@/lib/utils";
+import {
+  createNote,
+  deleteNote,
+  getNotes,
+  updateNote,
+} from "@/lib/actions/notes.actions";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function NotesPage() {
   const [user, setUser] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [notes, setNotes] = useState<NoteCipher[] | null>(null);
   const router = useRouter();
-
-  // Dummy notes data
-  const initialNotes = useMemo<Note[]>(
-    () => [
-      {
-        id: "1",
-        title: "Project ideas",
-        content:
-          "- Build a personal knowledge base\n- Try end-to-end encrypted notes\n- Explore offline-first patterns",
-        updatedAt: Date.now() - 1000 * 60 * 60 * 24 * 1,
-      },
-      {
-        id: "2",
-        title: "Groceries",
-        content: "Milk, Eggs, Bread, Coffee, Apples, Spinach, Pasta, Olive oil",
-        updatedAt: Date.now() - 1000 * 60 * 60 * 24 * 3,
-      },
-      {
-        id: "3",
-        title: "Reading list",
-        content:
-          "Clean Code, Designing Data-Intensive Applications, The Pragmatic Programmer",
-        updatedAt: Date.now() - 1000 * 60 * 60 * 5,
-      },
-      {
-        id: "4",
-        title: "Meeting notes",
-        content:
-          "Discuss timelines, assign owners, confirm scope, follow up next week",
-        updatedAt: Date.now() - 1000 * 60 * 30,
-      },
-    ],
-    []
-  );
-
-  const [notes, setNotes] = useState<Note[]>(initialNotes);
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(
-    initialNotes[0]?.id ?? null
-  );
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileListOnly, setIsMobileListOnly] = useState(false);
-
-  const selectedNote = useMemo(
-    () => notes.find((n) => n.id === selectedNoteId) ?? null,
-    [notes, selectedNoteId]
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [savedStatus, setSavedStatus] = useState<"typing" | "saving" | "saved">(
+    "saved"
   );
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Get current user
+        const session = await getCurrentSession();
+        setUser(session.userId);
+
+        // Get notes
+        const fetched = await getNotes(session.userId);
+        setNotes(fetched);
+      } catch (error) {
+        router.replace("/"); // Redirect to login page if user is not logged in
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
+
+  const selectedNote = useMemo(() => {
+    if (!notes || !selectedNoteId) return null;
+    const match = notes.find((n) => n.$id === selectedNoteId);
+    return match ?? null;
+  }, [notes, selectedNoteId]);
+
   const filteredNotes = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return notes;
+    if (!notes) return [];
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return notes;
     return notes.filter(
       (n) =>
-        n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q)
+        n.titleCipher.toLowerCase().includes(query) ||
+        n.contentCipher.toLowerCase().includes(query)
     );
   }, [notes, searchQuery]);
 
@@ -103,58 +88,80 @@ export default function NotesPage() {
     router.push("/");
   };
 
-  const handleCreateNote = () => {
+  const handleCreateNote = async () => {
     const newNote: Note = {
-      id: `${Date.now()}`,
       title: "Untitled",
       content: "",
-      updatedAt: Date.now(),
     };
-    setNotes((prev) => [newNote, ...prev]);
-    setSelectedNoteId(newNote.id);
+    if (user === null || notes === null) {
+      return;
+    }
+
+    // TODO: Make sure to encrypt the note
+    const newNoteDB: NoteDB = {
+      titleCipher: newNote.title,
+      contentCipher: newNote.content,
+      user: user,
+    };
+
+    const note = await createNote(newNoteDB);
+    setNotes((prev) => [note, ...(prev ?? [])]);
+    setSelectedNoteId(note.$id);
     setIsMobileListOnly(false);
   };
 
-  const handleDeleteNote = (id: string) => {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
-    if (selectedNoteId === id) {
-      setSelectedNoteId((prev) => {
-        const remaining = notes.filter((n) => n.id !== id);
-        return remaining[0]?.id ?? null;
-      });
-    }
+  const handleDeleteNote = async (id: string) => {
+    await deleteNote(id);
+    setNotes((prev) => (prev ? prev.filter((n) => n.$id !== id) : prev));
+    setSelectedNoteId(null);
   };
 
-  const handleUpdateTitle = (id: string, title: string) => {
-    setNotes((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, title, updatedAt: Date.now() } : n
-      )
-    );
-  };
+  const handleUpdateNote = async (
+    note: NoteCipher,
+    newTitle?: string,
+    newContent?: string
+  ) => {
+    setSavedStatus("typing");
+    const nextTitleCipher =
+      newTitle !== undefined ? newTitle : note.titleCipher;
+    const nextContentCipher =
+      newContent !== undefined ? newContent : note.contentCipher;
 
-  const handleUpdateContent = (id: string, content: string) => {
-    setNotes((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, content, updatedAt: Date.now() } : n
-      )
-    );
-  };
-
-  useEffect(() => {
-    const handleGetCurrentUser = async () => {
-      try {
-        const session = await getCurrentSession();
-        setUser(session.userId);
-      } catch (error) {
-        router.replace("/");
-      } finally {
-        setIsLoading(false);
-      }
+    // TODO: Encrypt values before saving
+    const newNoteDB: NoteDB = {
+      titleCipher: nextTitleCipher,
+      contentCipher: nextContentCipher,
+      user: user as string,
     };
 
-    handleGetCurrentUser();
-  }, [router]);
+    // Optimistically update local state so the selected note reflects changes immediately
+    setNotes((prev) =>
+      prev
+        ? prev.map((n) =>
+            n.$id === note.$id
+              ? {
+                  ...n,
+                  titleCipher: nextTitleCipher,
+                  contentCipher: nextContentCipher,
+                }
+              : n
+          )
+        : prev
+    );
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(async () => {
+      setSavedStatus("saving");
+      await updateNote(note.$id, newNoteDB);
+      setSavedStatus("saved");
+    }, 2000);
+  };
+
+  if (!user && !isLoading) {
+    return null;
+  }
 
   if (isLoading) {
     return (
@@ -163,10 +170,6 @@ export default function NotesPage() {
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (
@@ -220,12 +223,12 @@ export default function NotesPage() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {filteredNotes.map((note) => {
-                      const isActive = note.id === selectedNoteId;
+                      const isActive = note.$id === selectedNoteId;
                       return (
                         <button
-                          key={note.id}
+                          key={note.$id}
                           onClick={() => {
-                            setSelectedNoteId(note.id);
+                            setSelectedNoteId(note.$id);
                           }}
                           className={`text-left rounded-lg border p-3 transition-colors hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none ${
                             isActive ? "bg-accent" : "bg-background"
@@ -234,14 +237,14 @@ export default function NotesPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className="font-medium truncate">
-                                {note.title || "Untitled"}
+                                {note.titleCipher || "Untitled"}
                               </p>
                               <p className="text-xs text-muted-foreground truncate">
-                                {note.content || "No content"}
+                                {note.contentCipher || "No content"}
                               </p>
                             </div>
                             <span className="text-xs text-muted-foreground shrink-0">
-                              {formatDate(note.updatedAt)}
+                              {formatDate(note.$updatedAt)}
                             </span>
                           </div>
                         </button>
@@ -277,36 +280,53 @@ export default function NotesPage() {
                     </div>
                     <p className="text-sm text-muted-foreground ml-auto md:ml-0">
                       {selectedNote
-                        ? `Edited ${formatDate(selectedNote.updatedAt)}`
+                        ? `Edited ${formatDate(selectedNote.$updatedAt)}`
                         : ""}
                     </p>
                   </div>
                   {selectedNote ? (
-                    <Input
-                      value={selectedNote.title}
-                      onChange={(e) =>
-                        handleUpdateTitle(selectedNote.id, e.target.value)
-                      }
-                      className="text-lg font-medium"
-                      placeholder="Note title"
-                    />
+                    <>
+                      <Input
+                        value={selectedNote.titleCipher}
+                        onChange={(e) =>
+                          handleUpdateNote(
+                            selectedNote,
+                            e.target.value,
+                            undefined
+                          )
+                        }
+                        className="text-lg font-medium"
+                        placeholder="Note title"
+                      />
+                      <CardDescription className="flex items-center gap-1.5">
+                        {savedStatus === "saved" && (
+                          <Check className="size-4" />
+                        )}
+                        {savedStatus === "typing" && (
+                          <Info className="size-4" />
+                        )}
+                        {savedStatus === "saving" && (
+                          <LoaderCircle className="size-4 animate-spin" />
+                        )}
+                        <span>
+                          {savedStatus === "saved" && "Changes saved"}
+                          {savedStatus === "typing" && "Unsaved changes"}
+                          {savedStatus === "saving" && "Encrypting..."}
+                        </span>
+                      </CardDescription>
+                    </>
                   ) : (
                     <CardTitle className="text-base">
                       No note selected
                     </CardTitle>
                   )}
-                  <CardDescription>
-                    {selectedNote
-                      ? "Start typing to edit your note"
-                      : "Create or select a note to start writing"}
-                  </CardDescription>
                 </div>
                 {selectedNote && (
                   <div className="shrink-0">
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteNote(selectedNote.id)}
+                      onClick={() => handleDeleteNote(selectedNote.$id)}
                     >
                       <Trash2 className="size-4" />
                       Delete
@@ -316,13 +336,13 @@ export default function NotesPage() {
               </CardHeader>
               <CardContent>
                 {selectedNote ? (
-                  <textarea
-                    value={selectedNote.content}
+                  <Textarea
+                    value={selectedNote.contentCipher}
                     onChange={(e) =>
-                      handleUpdateContent(selectedNote.id, e.target.value)
+                      handleUpdateNote(selectedNote, undefined, e.target.value)
                     }
                     placeholder="Write your note here..."
-                    className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input w-full min-h-[220px] md:min-h-[420px] rounded-md border bg-transparent p-3 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+                    className="w-full min-h-[220px] md:min-h-[420px]"
                   />
                 ) : (
                   <div className="text-sm text-muted-foreground py-8 text-center">

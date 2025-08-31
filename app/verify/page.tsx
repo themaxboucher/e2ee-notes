@@ -48,7 +48,7 @@ function VerifyContent() {
   }, [searchParams, router]);
 
   return (
-    <>
+    <div className="mt-[68px]">
       {status === "loading" && <Loading message="Verifying your login..." />}
 
       {status === "success" && (
@@ -56,7 +56,7 @@ function VerifyContent() {
       )}
 
       {status === "error" && (
-        <div className="flex flex-col items-center justify-center gap-4 min-h-screen w-full">
+        <div className="flex flex-col items-center justify-center gap-4 min-h-[calc(100vh-68px)] w-full">
           <div className="max-w-md w-full flex flex-col items-center justify-center gap-4">
             <p className="text-sm text-destructive bg-destructive/10 p-4 rounded-md">
               {error ?? "An unknown error occurred."}
@@ -71,7 +71,7 @@ function VerifyContent() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

@@ -28,7 +28,7 @@ export default function AccountMenu({ email }: { email: string }) {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild className="hover:cursor-pointer">
           <Menu className="size-5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="max-w-56 w-56">

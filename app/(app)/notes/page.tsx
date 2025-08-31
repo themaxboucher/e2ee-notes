@@ -218,15 +218,15 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="w-full min-h-screen">
-      <div className="max-w-screen-xl mx-auto p-4 md:p-6">
+    <div className="w-full min-h-[calc(100vh-68px)]">
+      <div className="mx-auto p-4 md:p-6">
         {/* Responsive layout: list and editor side-by-side on md+, stacked on mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-10">
           {/* Notes list */}
           <div
             className={
               // On mobile, hide list when a note is selected and not explicitly viewing list
-              `md:col-span-5 ${
+              `md:col-span-4 ${
                 selectedNote && !isMobileListOnly ? "hidden md:block" : "block"
               }`
             }
@@ -262,9 +262,9 @@ export default function NotesPage() {
                         onClick={() => {
                           setSelectedNoteId(note.id);
                         }}
-                        className={`text-left rounded-lg border p-3 transition-colors hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none ${
+                        className={`text-left shadow-xs rounded-lg border p-3 transition-all ease-out duration-200 hover:cursor-pointer hover:bg-primary/5 hover:border-primary/20 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none ${
                           isActive
-                            ? "bg-primary/10 border-primary/50"
+                            ? "bg-primary/10 border-primary/50 ring-primary/20 ring-3"
                             : "bg-background"
                         }`}
                       >
@@ -291,71 +291,75 @@ export default function NotesPage() {
 
           {/* Editor */}
           <div
-            className={`md:col-span-7 ${
+            className={`md:col-span-8 ${
               selectedNote ? "block" : "hidden md:block"
             }`}
           >
-            <Card className="min-h-[280px]">
-              <CardHeader className="flex flex-row items-center justify-between gap-3">
-                <div className="space-y-1.5 w-full">
-                  <div className="flex items-center gap-2">
-                    <div className="md:hidden">
-                      {selectedNote && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsMobileListOnly(true)}
-                        >
-                          <ArrowLeft className="size-4" />
-                          Back
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground ml-auto md:ml-0">
-                      {selectedNote
-                        ? `Edited ${formatDate(selectedNote.updatedAt)}`
-                        : ""}
-                    </p>
-                  </div>
-                  {selectedNote ? (
-                    <>
-                      <Input
-                        value={selectedNote.title}
-                        onChange={(e) =>
-                          handleUpdateNote(
-                            selectedNote,
-                            e.target.value,
-                            undefined
-                          )
-                        }
-                        className="text-lg font-medium"
-                        placeholder="Note title"
-                      />
-                      <CardDescription className="flex items-center gap-1.5">
+            <Card className="min-h-[280px] gap-4 bg-transparent shadow-xs">
+              {selectedNote && (
+                <CardHeader className="flex flex-row items-center justify-between gap-3">
+                  <div className="space-y-1.5 w-full">
+                    <div className="flex items-center gap-4 justify-between">
+                      <p className="text-sm text-muted-foreground ml-auto md:ml-0">
+                        {selectedNote
+                          ? `Edited ${formatDate(selectedNote.updatedAt)}`
+                          : ""}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         {savedStatus === "saved" && (
-                          <Check className="size-4" />
+                          <Check className="size-3" />
                         )}
                         {savedStatus === "typing" && (
-                          <Info className="size-4" />
+                          <Info className="size-3" />
                         )}
                         {savedStatus === "saving" && (
-                          <LoaderCircle className="size-4 animate-spin" />
+                          <LoaderCircle className="size-3 animate-spin" />
                         )}
                         <span>
                           {savedStatus === "saved" && "Changes saved"}
                           {savedStatus === "typing" && "Unsaved changes"}
                           {savedStatus === "saving" && "Encrypting..."}
                         </span>
-                      </CardDescription>
-                    </>
-                  ) : (
-                    <CardTitle className="text-base">
-                      No note selected
-                    </CardTitle>
-                  )}
-                </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+              )}
+              <CardContent className="space-y-4">
+                {selectedNote ? (
+                  <>
+                    <Input
+                      value={selectedNote.title}
+                      onChange={(e) =>
+                        handleUpdateNote(
+                          selectedNote,
+                          e.target.value,
+                          undefined
+                        )
+                      }
+                      className="text-lg font-medium"
+                      placeholder="Note title"
+                    />
+                  </>
+                ) : (
+                  <CardTitle className="text-base">No note selected</CardTitle>
+                )}
+                {selectedNote ? (
+                  <Textarea
+                    value={selectedNote.content}
+                    onChange={(e) =>
+                      handleUpdateNote(selectedNote, undefined, e.target.value)
+                    }
+                    placeholder="Write your note here..."
+                    className="w-full min-h-[220px] md:min-h-[30rem]"
+                  />
+                ) : (
+                  <div className="text-sm text-muted-foreground py-8 text-center">
+                    Nothing to edit yet.
+                  </div>
+                )}
                 {selectedNote && (
-                  <div className="shrink-0">
+                  <div className="">
                     <Button
                       variant="outline"
                       size="sm"
@@ -364,22 +368,6 @@ export default function NotesPage() {
                       <Trash2 className="size-4" />
                       Delete
                     </Button>
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent>
-                {selectedNote ? (
-                  <Textarea
-                    value={selectedNote.content}
-                    onChange={(e) =>
-                      handleUpdateNote(selectedNote, undefined, e.target.value)
-                    }
-                    placeholder="Write your note here..."
-                    className="w-full min-h-[220px] md:min-h-[420px]"
-                  />
-                ) : (
-                  <div className="text-sm text-muted-foreground py-8 text-center">
-                    Nothing to edit yet.
                   </div>
                 )}
               </CardContent>

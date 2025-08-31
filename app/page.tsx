@@ -31,7 +31,11 @@ export default function Home() {
 
   // Show loading state while checking session
   if (isLoading) {
-    return <Loading />;
+    return (
+      <div className="mt-[68px]">
+        <Loading />
+      </div>
+    );
   }
 
   return (

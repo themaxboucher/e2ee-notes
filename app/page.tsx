@@ -39,11 +39,12 @@ export default function Home() {
       <Navbar />
       <main className="flex flex-col gap-8 items-center min-h-[calc(100vh-68px)] px-10 pt-[25vh]">
         <BlurFade direction="up">
-          <div className="text-center space-y-2 max-w-md">
-            <h2 className="heading-3">Privacy for your ideas.</h2>
+          <div className="text-center space-y-3 max-w-[30rem]">
+            <h2 className="heading-2">
+              Take private notes with end-to-end encryption*
+            </h2>
             <p className="text-muted-foreground">
-              Take notes secured with end-to-end encryption. That means no one
-              else can read them (not even us).
+              *That means no one else can read them (not even us).
             </p>
           </div>
         </BlurFade>

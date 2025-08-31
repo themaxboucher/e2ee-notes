@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  LogOut,
   LoaderCircle,
   Plus,
   Search,
@@ -22,7 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getCurrentSession, logout } from "@/lib/appwrite/client";
+import { getCurrentSession } from "@/lib/appwrite/client";
 import { formatDate } from "@/lib/utils";
 import {
   createNote,
@@ -146,7 +145,10 @@ export default function NotesPage() {
     };
 
     const note = await createNote(newNoteDB);
-    setNotes((prev) => [note, ...(prev ?? [])]);
+    setNotes((prev) => [
+      { ...newNote, id: note.$id, updatedAt: note.$updatedAt },
+      ...(prev ?? []),
+    ]);
     setSelectedNoteId(note.$id);
     setIsMobileListOnly(false);
   };
@@ -218,16 +220,6 @@ export default function NotesPage() {
   return (
     <div className="w-full min-h-screen">
       <div className="max-w-screen-xl mx-auto p-4 md:p-6">
-        <div className="flex items-center justify-between gap-3 mb-4 md:mb-6">
-          <h1 className="heading-3 md:heading-2">Your Notes</h1>
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={handleCreateNote}>
-              <Plus className="size-4" />
-              New note
-            </Button>
-          </div>
-        </div>
-
         {/* Responsive layout: list and editor side-by-side on md+, stacked on mobile */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
           {/* Notes list */}
@@ -239,13 +231,9 @@ export default function NotesPage() {
               }`
             }
           >
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Browse</CardTitle>
-                <CardDescription>Search and select a note</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="relative">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="relative w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input
                     placeholder="Search notes..."
@@ -254,45 +242,51 @@ export default function NotesPage() {
                     className="pl-9"
                   />
                 </div>
+                <Button size="sm" onClick={handleCreateNote}>
+                  <Plus className="size-4" />
+                  New note
+                </Button>
+              </div>
 
-                {filteredNotes.length === 0 ? (
-                  <div className="text-sm text-muted-foreground py-8 text-center">
-                    No notes match your search.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {filteredNotes.map((note, index) => {
-                      const isActive = note.id === selectedNoteId;
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => {
-                            setSelectedNoteId(note.id);
-                          }}
-                          className={`text-left rounded-lg border p-3 transition-colors hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none ${
-                            isActive ? "bg-accent" : "bg-background"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="font-medium truncate">
-                                {note.title || "Untitled"}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {note.content || "No content"}
-                              </p>
-                            </div>
-                            <span className="text-xs text-muted-foreground shrink-0">
-                              {formatDate(note.updatedAt)}
-                            </span>
+              {filteredNotes.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-8 text-center">
+                  No notes match your search.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {filteredNotes.map((note, index) => {
+                    const isActive = note.id === selectedNoteId;
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setSelectedNoteId(note.id);
+                        }}
+                        className={`text-left rounded-lg border p-3 transition-colors hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none ${
+                          isActive
+                            ? "bg-primary/10 border-primary/50"
+                            : "bg-background"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">
+                              {note.title || "Untitled"}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {note.content || "No content"}
+                            </p>
                           </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {formatDate(note.updatedAt)}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Editor */}

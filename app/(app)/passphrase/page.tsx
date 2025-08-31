@@ -2,7 +2,7 @@
 
 import { BlurFade } from "@/components/magicui/blur-fade";
 import PassphraseForm from "@/components/PassphraseForm";
-import { getUser } from "@/lib/appwrite/client";
+import { getUserPrefs } from "@/lib/appwrite/client";
 import { useEffect, useState } from "react";
 
 export default function PassphrasePage() {
@@ -10,7 +10,7 @@ export default function PassphrasePage() {
 
   useEffect(() => {
     async function fetchUserPrefs() {
-      const fetchedUserPrefs = await getUser();
+      const fetchedUserPrefs = await getUserPrefs();
       if (
         fetchedUserPrefs.wrappedDek &&
         fetchedUserPrefs.iv &&

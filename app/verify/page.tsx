@@ -56,17 +56,19 @@ function VerifyContent() {
       )}
 
       {status === "error" && (
-        <div className="max-w-md w-full flex flex-col items-center justify-center gap-4">
-          <p className="text-sm text-destructive bg-destructive/10 p-4 rounded-md">
-            {error ?? "An unknown error occurred."}
-          </p>
-          {error && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/">
-                <ArrowLeft className="size-4" /> Back to login
-              </Link>
-            </Button>
-          )}
+        <div className="flex flex-col items-center justify-center gap-4 min-h-screen w-full">
+          <div className="max-w-md w-full flex flex-col items-center justify-center gap-4">
+            <p className="text-sm text-destructive bg-destructive/10 p-4 rounded-md">
+              {error ?? "An unknown error occurred."}
+            </p>
+            {error && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/">
+                  <ArrowLeft className="size-4" /> Back to login
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </>

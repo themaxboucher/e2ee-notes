@@ -56,6 +56,16 @@ export async function logout() {
 
 export async function getUser() {
   try {
+    const result = await account.get();
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+export async function getUserPrefs() {
+  try {
     const result = await account.getPrefs();
     return result;
   } catch (error) {
@@ -64,7 +74,7 @@ export async function getUser() {
   }
 }
 
-export async function updateUser(preferences: object) {
+export async function updateUserPrefs(preferences: object) {
   try {
     const result = await account.updatePrefs(preferences);
     return result;

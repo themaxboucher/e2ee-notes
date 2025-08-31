@@ -47,7 +47,7 @@ export default function AuthForm() {
         <TextField form={form} name="email" placeholder="Enter your email" />
         <Button type="submit" className="w-full" disabled={loading}>
           {loading && <LoaderCircle className="h-4 w-4 animate-spin" />}
-          {!loading && "Get Started"}
+          {!loading && "Continue"}
         </Button>
         {error && <FormAlert message={error} type="error" />}
         {success && (

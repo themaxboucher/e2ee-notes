@@ -3,20 +3,24 @@
 import { DekProvider } from "@/components/DekProvider";
 import Loading from "@/components/Loading";
 import Navbar from "@/components/Navbar";
-import { getCurrentSession } from "@/lib/appwrite/client";
+import { getUser } from "@/lib/appwrite/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleGetCurrentSession = async () => {
+    const fetchUser = async () => {
       try {
-        const session = await getCurrentSession();
-        if (!session) {
+        const fetchedUser = await getUser();
+        console.log("fetchedUser", fetchedUser);
+        if (!fetchedUser) {
           router.replace("/");
+        } else {
+          setEmail(fetchedUser.email);
         }
       } catch (error) {
         console.error("Session check error:", error);
@@ -25,7 +29,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     };
-    handleGetCurrentSession();
+    fetchUser();
   }, [router]);
 
   if (isLoading) {
@@ -35,7 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <DekProvider>
       <div>
-        <Navbar />
+        <Navbar email={email ? email : undefined} />
         {children}
       </div>
     </DekProvider>

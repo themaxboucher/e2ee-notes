@@ -16,7 +16,7 @@ import {
   unwrapDekWithKek,
   wrapDekWithKek,
 } from "@/lib/crypto";
-import { updateUser } from "@/lib/appwrite/client";
+import { updateUserPrefs } from "@/lib/appwrite/client";
 import { useRouter } from "next/navigation";
 import { useDek } from "./DekProvider";
 
@@ -81,7 +81,7 @@ export default function PassphraseForm({
         const wrappedDek = await wrapDekWithKek(dek, kek);
 
         // Update the user with the wrapped DEK
-        await updateUser({
+        await updateUserPrefs({
           wrappedDek: wrappedDek.wrappedDekB64,
           iv: wrappedDek.ivB64,
           kdfSalt: kdfSalt,

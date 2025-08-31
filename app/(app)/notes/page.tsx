@@ -124,12 +124,6 @@ export default function NotesPage() {
     );
   }, [notes, searchQuery]);
 
-  const handleLogout = async () => {
-    await logout();
-    setUser(null);
-    router.push("/");
-  };
-
   const handleCreateNote = async () => {
     const newNote: { title: string; content: string } = {
       title: "Untitled",
@@ -218,7 +212,7 @@ export default function NotesPage() {
   }
 
   if (isLoading) {
-    return <Loading message="Loading notes..." />;
+    return <Loading message="Decrypting notes..." />;
   }
 
   return (
@@ -227,10 +221,6 @@ export default function NotesPage() {
         <div className="flex items-center justify-between gap-3 mb-4 md:mb-6">
           <h1 className="heading-3 md:heading-2">Your Notes</h1>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="size-4" />
-              Logout
-            </Button>
             <Button size="sm" onClick={handleCreateNote}>
               <Plus className="size-4" />
               New note

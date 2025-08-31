@@ -31,11 +31,15 @@ import {
   updateNote,
 } from "@/lib/actions/notes.actions";
 import { Textarea } from "@/components/ui/textarea";
+import { encryptWithDek, decryptWithDek } from "@/lib/crypto";
+import { useDek } from "@/components/DekProvider";
+import Loading from "@/components/Loading";
 
 export default function NotesPage() {
+  const { dek } = useDek();
   const [user, setUser] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [notes, setNotes] = useState<NoteCipher[] | null>(null);
+  const [notes, setNotes] = useState<Note[] | null>(null);
   const router = useRouter();
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,6 +48,41 @@ export default function NotesPage() {
   const [savedStatus, setSavedStatus] = useState<"typing" | "saving" | "saved">(
     "saved"
   );
+
+  if (!dek) {
+    // Redirect to the passphrase form
+    router.push("/passphrase");
+    return null;
+  }
+
+  // Helpers to encrypt/decrypt a note
+  const encryptNote = async (note: { title: string; content: string }) => {
+    if (!dek) throw new Error("DEK not available");
+    const { ciphertextB64: titleCipher, ivB64: titleIv } = await encryptWithDek(
+      dek,
+      note.title
+    );
+    const { ciphertextB64: contentCipher, ivB64: contentIv } =
+      await encryptWithDek(dek, note.content);
+    return { titleCipher, titleIv, contentCipher, contentIv };
+  };
+
+  const decryptNote = async (note: NoteCipher) => {
+    if (!dek) throw new Error("DEK not available");
+    const title = await decryptWithDek(dek, note.titleCipher, note.titleIv);
+    const content = await decryptWithDek(
+      dek,
+      note.contentCipher,
+      note.contentIv
+    );
+    const decryptedNote: Note = {
+      id: note.$id,
+      title: title,
+      content: content,
+      updatedAt: note.$updatedAt,
+    };
+    return decryptedNote;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,7 +93,10 @@ export default function NotesPage() {
 
         // Get notes
         const fetched = await getNotes(session.userId);
-        setNotes(fetched);
+
+        // Decrypt the notes
+        const decryptedNotes = await Promise.all(fetched.map(decryptNote));
+        setNotes(decryptedNotes);
       } catch (error) {
         router.replace("/"); // Redirect to login page if user is not logged in
       } finally {
@@ -67,7 +109,7 @@ export default function NotesPage() {
 
   const selectedNote = useMemo(() => {
     if (!notes || !selectedNoteId) return null;
-    const match = notes.find((n) => n.$id === selectedNoteId);
+    const match = notes.find((n) => n.id === selectedNoteId);
     return match ?? null;
   }, [notes, selectedNoteId]);
 
@@ -77,8 +119,8 @@ export default function NotesPage() {
     if (!query) return notes;
     return notes.filter(
       (n) =>
-        n.titleCipher.toLowerCase().includes(query) ||
-        n.contentCipher.toLowerCase().includes(query)
+        n.title.toLowerCase().includes(query) ||
+        n.content.toLowerCase().includes(query)
     );
   }, [notes, searchQuery]);
 
@@ -89,7 +131,7 @@ export default function NotesPage() {
   };
 
   const handleCreateNote = async () => {
-    const newNote: Note = {
+    const newNote: { title: string; content: string } = {
       title: "Untitled",
       content: "",
     };
@@ -97,10 +139,15 @@ export default function NotesPage() {
       return;
     }
 
+    const { titleCipher, titleIv, contentCipher, contentIv } =
+      await encryptNote(newNote);
+
     // TODO: Make sure to encrypt the note
     const newNoteDB: NoteDB = {
-      titleCipher: newNote.title,
-      contentCipher: newNote.content,
+      titleCipher: titleCipher,
+      titleIv: titleIv,
+      contentCipher: contentCipher,
+      contentIv: contentIv,
       user: user,
     };
 
@@ -112,25 +159,32 @@ export default function NotesPage() {
 
   const handleDeleteNote = async (id: string) => {
     await deleteNote(id);
-    setNotes((prev) => (prev ? prev.filter((n) => n.$id !== id) : prev));
+    setNotes((prev) => (prev ? prev.filter((n) => n.id !== id) : prev));
     setSelectedNoteId(null);
   };
 
   const handleUpdateNote = async (
-    note: NoteCipher,
+    note: Note,
     newTitle?: string,
     newContent?: string
   ) => {
     setSavedStatus("typing");
-    const nextTitleCipher =
-      newTitle !== undefined ? newTitle : note.titleCipher;
-    const nextContentCipher =
-      newContent !== undefined ? newContent : note.contentCipher;
+    if (!dek) return;
+
+    const plaintext: { title: string; content: string } = {
+      title: newTitle ?? note.title,
+      content: newContent ?? note.content,
+    };
+
+    const { titleCipher, titleIv, contentCipher, contentIv } =
+      await encryptNote(plaintext);
 
     // TODO: Encrypt values before saving
     const newNoteDB: NoteDB = {
-      titleCipher: nextTitleCipher,
-      contentCipher: nextContentCipher,
+      titleCipher: titleCipher,
+      titleIv: titleIv,
+      contentCipher: contentCipher,
+      contentIv: contentIv,
       user: user as string,
     };
 
@@ -138,11 +192,11 @@ export default function NotesPage() {
     setNotes((prev) =>
       prev
         ? prev.map((n) =>
-            n.$id === note.$id
+            n.id === note.id
               ? {
                   ...n,
-                  titleCipher: nextTitleCipher,
-                  contentCipher: nextContentCipher,
+                  title: plaintext.title,
+                  content: plaintext.content,
                 }
               : n
           )
@@ -154,7 +208,7 @@ export default function NotesPage() {
     }
     typingTimeoutRef.current = setTimeout(async () => {
       setSavedStatus("saving");
-      await updateNote(note.$id, newNoteDB);
+      await updateNote(note.id, newNoteDB);
       setSavedStatus("saved");
     }, 2000);
   };
@@ -164,12 +218,7 @@ export default function NotesPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="w-full min-h-screen flex flex-col items-center justify-center gap-4">
-        <LoaderCircle className="size-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    );
+    return <Loading message="Loading notes..." />;
   }
 
   return (
@@ -222,13 +271,13 @@ export default function NotesPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {filteredNotes.map((note) => {
-                      const isActive = note.$id === selectedNoteId;
+                    {filteredNotes.map((note, index) => {
+                      const isActive = note.id === selectedNoteId;
                       return (
                         <button
-                          key={note.$id}
+                          key={index}
                           onClick={() => {
-                            setSelectedNoteId(note.$id);
+                            setSelectedNoteId(note.id);
                           }}
                           className={`text-left rounded-lg border p-3 transition-colors hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none ${
                             isActive ? "bg-accent" : "bg-background"
@@ -237,14 +286,14 @@ export default function NotesPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className="font-medium truncate">
-                                {note.titleCipher || "Untitled"}
+                                {note.title || "Untitled"}
                               </p>
                               <p className="text-xs text-muted-foreground truncate">
-                                {note.contentCipher || "No content"}
+                                {note.content || "No content"}
                               </p>
                             </div>
                             <span className="text-xs text-muted-foreground shrink-0">
-                              {formatDate(note.$updatedAt)}
+                              {formatDate(note.updatedAt)}
                             </span>
                           </div>
                         </button>
@@ -280,14 +329,14 @@ export default function NotesPage() {
                     </div>
                     <p className="text-sm text-muted-foreground ml-auto md:ml-0">
                       {selectedNote
-                        ? `Edited ${formatDate(selectedNote.$updatedAt)}`
+                        ? `Edited ${formatDate(selectedNote.updatedAt)}`
                         : ""}
                     </p>
                   </div>
                   {selectedNote ? (
                     <>
                       <Input
-                        value={selectedNote.titleCipher}
+                        value={selectedNote.title}
                         onChange={(e) =>
                           handleUpdateNote(
                             selectedNote,
@@ -326,7 +375,7 @@ export default function NotesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteNote(selectedNote.$id)}
+                      onClick={() => handleDeleteNote(selectedNote.id)}
                     >
                       <Trash2 className="size-4" />
                       Delete
@@ -337,7 +386,7 @@ export default function NotesPage() {
               <CardContent>
                 {selectedNote ? (
                   <Textarea
-                    value={selectedNote.contentCipher}
+                    value={selectedNote.content}
                     onChange={(e) =>
                       handleUpdateNote(selectedNote, undefined, e.target.value)
                     }

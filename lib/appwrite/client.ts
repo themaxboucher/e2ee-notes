@@ -53,3 +53,23 @@ export async function logout() {
     throw error;
   }
 }
+
+export async function getUser() {
+  try {
+    const result = await account.getPrefs();
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+export async function updateUser(preferences: object) {
+  try {
+    const result = await account.updatePrefs(preferences);
+    return result;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}

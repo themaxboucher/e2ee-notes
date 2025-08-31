@@ -9,6 +9,16 @@ import { Form } from "./ui/form";
 import FormAlert from "./FormAlert";
 import { Button } from "./ui/button";
 import { PasswordField } from "./form-fields/PasswordField";
+import {
+  createDek,
+  deriveKek,
+  generateKdfSaltB64,
+  unwrapDekWithKek,
+  wrapDekWithKek,
+} from "@/lib/crypto";
+import { updateUser } from "@/lib/appwrite/client";
+import { useRouter } from "next/navigation";
+import { useDek } from "./DekProvider";
 
 const formSchema = z.object({
   passphrase: z
@@ -16,9 +26,17 @@ const formSchema = z.object({
     .min(8, { message: "Passphrase must be at least 8 characters" }),
 });
 
-export default function AuthForm() {
+export default function PassphraseForm({
+  userPrefs,
+}: {
+  userPrefs?: UserPrefs;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const router = useRouter();
+  const { set } = useDek();
+
+  console.log("userPrefs", userPrefs);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -28,7 +46,61 @@ export default function AuthForm() {
   });
 
   async function onSubmitHandler(data: z.infer<typeof formSchema>) {
-    console.log(data);
+    setLoading(true);
+    try {
+      // User already has a passphrase
+      if (userPrefs) {
+        // Derive the KEK from the passphrase
+        const kek = await deriveKek(
+          data.passphrase,
+          userPrefs.kdfSalt,
+          userPrefs.kdfIterations
+        );
+
+        // Decrypt the wrappped DEK
+        const dek = await unwrapDekWithKek(
+          userPrefs.wrappedDek,
+          userPrefs.iv,
+          kek
+        );
+
+        // Save the DEK to the DekProvider
+        set(dek);
+      }
+
+      // User doesn't have a passphrase
+      if (!userPrefs) {
+        const kdfSalt = generateKdfSaltB64();
+        const kdfIterations = 200000;
+
+        // Derive the KEK from the passphrase
+        const kek = await deriveKek(data.passphrase, kdfSalt, kdfIterations);
+
+        // Create the DEK
+        const dek = await createDek();
+
+        // Wrap the DEK with the KEK
+        const wrappedDek = await wrapDekWithKek(dek, kek);
+
+        // Update the user with the wrapped DEK
+        await updateUser({
+          wrappedDek: wrappedDek.wrappedDekB64,
+          iv: wrappedDek.ivB64,
+          kdfSalt: kdfSalt,
+          kdfIterations: kdfIterations,
+        });
+
+        // Save the DEK to the DekProvider
+        set(dek);
+      }
+
+      // Redirect to the notes page
+      router.push("/notes");
+    } catch (error) {
+      setError("Incorrect passphrase. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
   return (
     <Form {...form}>
@@ -43,7 +115,7 @@ export default function AuthForm() {
         />
         <Button type="submit" className="w-full" disabled={loading}>
           {loading && <LoaderCircle className="h-4 w-4 animate-spin" />}
-          {!loading && "Create passphrase"}
+          {!loading && userPrefs ? "Go to notes" : "Create passphrase"}
         </Button>
         {error && <FormAlert message={error} type="error" />}
       </form>

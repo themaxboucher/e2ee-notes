@@ -2,10 +2,11 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft, LoaderCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { loginWithMagicLink } from "@/lib/appwrite/client";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Loading from "@/components/Loading";
 
 // Separate component that uses useSearchParams() - must be wrapped in Suspense
 // This is required in Next.js 15 to handle client-side rendering bailout properly
@@ -47,23 +48,11 @@ function VerifyContent() {
   }, [searchParams, router]);
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4">
-      {status === "loading" && (
-        <>
-          <LoaderCircle className="size-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">
-            Verifying your login...
-          </p>
-        </>
-      )}
+    <>
+      {status === "loading" && <Loading message="Verifying your login..." />}
 
       {status === "success" && (
-        <>
-          <LoaderCircle className="size-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">
-            Login successful! Redirecting...
-          </p>
-        </>
+        <Loading message="Login successful! Redirecting..." />
       )}
 
       {status === "error" && (
@@ -80,7 +69,7 @@ function VerifyContent() {
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -88,17 +77,8 @@ function VerifyContent() {
 // This is required in Next.js 15 when using useSearchParams() to prevent build errors
 export default function VerifyPage() {
   return (
-    <main className="w-full min-h-screen flex justify-center items-center px-6 py-20">
-      <Suspense
-        fallback={
-          <div className="flex flex-col items-center justify-center gap-4">
-            <LoaderCircle className="size-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading...</p>
-          </div>
-        }
-      >
-        <VerifyContent />
-      </Suspense>
-    </main>
+    <Suspense fallback={<Loading />}>
+      <VerifyContent />
+    </Suspense>
   );
 }

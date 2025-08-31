@@ -36,8 +36,6 @@ export default function PassphraseForm({
   const router = useRouter();
   const { set } = useDek();
 
-  console.log("userPrefs", userPrefs);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {

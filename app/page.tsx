@@ -7,6 +7,7 @@ import { getCurrentSession } from "@/lib/appwrite/client";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Loading from "@/components/Loading";
+import { CryptoBackground } from "@/components/ui/crypto-background";
 
 export default function Home() {
   const router = useRouter();
@@ -41,7 +42,8 @@ export default function Home() {
   return (
     <div>
       <Navbar />
-      <main className="flex flex-col gap-8 items-center min-h-[calc(100vh-68px)] px-10 pt-[25vh]">
+      <CryptoBackground />
+      <main className="flex flex-col gap-8 items-center min-h-[calc(100vh-68px)] px-10 pt-[25vh] relative z-10 pointer-events-none">
         <BlurFade direction="up">
           <div className="text-center space-y-3 max-w-[30rem]">
             <h2 className="heading-2">

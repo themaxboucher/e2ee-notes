@@ -41,7 +41,7 @@ export default function AuthForm() {
   return (
     <Form {...form}>
       <form
-        className="grid gap-4 w-full max-w-xs"
+        className="grid gap-4 w-full max-w-xs pointer-events-auto"
         onSubmit={form.handleSubmit(onSubmitHandler)}
       >
         <TextField form={form} name="email" placeholder="Enter your email" />

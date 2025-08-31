@@ -39,7 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <DekProvider>
       <div>
-        <Navbar email={email ? email : undefined} />
+        <Navbar email={email ? email : undefined} className="border-b" />
         {children}
       </div>
     </DekProvider>

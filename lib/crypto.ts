@@ -41,7 +41,7 @@ export async function encryptWithDek(
 ): Promise<{ ciphertextB64: string; ivB64: string }> {
   const iv = randomIv();
   const ctBuf = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv as BufferSource },
     dek,
     enc.encode(plaintext)
   );
@@ -59,7 +59,11 @@ export async function decryptWithDek(
 ): Promise<string> {
   const ct = b64ToBytes(ciphertextB64);
   const iv = b64ToBytes(ivB64);
-  const ptBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, dek, ct);
+  const ptBuf = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: iv as BufferSource },
+    dek,
+    ct as BufferSource
+  );
   return dec.decode(ptBuf);
 }
 
@@ -108,7 +112,7 @@ export async function deriveKek(
     {
       name: "PBKDF2",
       hash: "SHA-256",
-      salt: b64ToBytes(saltB64),
+      salt: b64ToBytes(saltB64) as BufferSource,
       iterations,
     },
     baseKey,
@@ -138,7 +142,11 @@ export async function wrapDekWithKek(
   const dekRaw = await crypto.subtle.exportKey("raw", dek); // ArrayBuffer
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, kek, dekRaw);
+  const ct = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: iv as BufferSource },
+    kek,
+    dekRaw
+  );
 
   return {
     wrappedDekB64: bytesToB64(new Uint8Array(ct)),
@@ -155,7 +163,11 @@ export async function unwrapDekWithKek(
   const ct = b64ToBytes(wrappedDekB64);
   const iv = b64ToBytes(ivB64);
 
-  const dekRaw = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, kek, ct);
+  const dekRaw = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: iv as BufferSource },
+    kek,
+    ct as BufferSource
+  );
 
   // Import DEK for AES-GCM encrypt/decrypt of notes.
   // Make it non-extractable for better security in production.

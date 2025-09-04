@@ -2,25 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  LoaderCircle,
-  Plus,
-  Search,
-  Trash2,
-  ArrowLeft,
-  Check,
-  Info,
-} from "lucide-react";
+import { LoaderCircle, Plus, Search, Trash2, Info, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentSession } from "@/lib/appwrite/client";
 import { formatDate } from "@/lib/utils";
 import {
@@ -306,19 +292,14 @@ export default function NotesPage() {
                           : ""}
                       </p>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        {savedStatus === "saved" && (
-                          <Check className="size-3" />
-                        )}
-                        {savedStatus === "typing" && (
-                          <Info className="size-3" />
-                        )}
-                        {savedStatus === "saving" && (
+                        {savedStatus === "saved" && <Lock className="size-3" />}
+                        {savedStatus !== "saved" && (
                           <LoaderCircle className="size-3 animate-spin" />
                         )}
                         <span>
-                          {savedStatus === "saved" && "Changes saved"}
-                          {savedStatus === "typing" && "Unsaved changes"}
-                          {savedStatus === "saving" && "Encrypting..."}
+                          {savedStatus === "saved"
+                            ? "End-to-end encrypted"
+                            : "Encrypting..."}
                         </span>
                       </div>
                     </div>

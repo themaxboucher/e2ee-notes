@@ -48,7 +48,7 @@ function VerifyContent() {
   }, [searchParams, router]);
 
   return (
-    <div className="mt-[68px]">
+    <>
       {status === "loading" && <Loading message="Verifying your login..." />}
 
       {status === "success" && (
@@ -71,7 +71,7 @@ function VerifyContent() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -79,13 +79,7 @@ function VerifyContent() {
 // This is required in Next.js 15 when using useSearchParams() to prevent build errors
 export default function VerifyPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="mt-[68px]">
-          <Loading />
-        </div>
-      }
-    >
+    <Suspense fallback={<Loading />}>
       <VerifyContent />
     </Suspense>
   );

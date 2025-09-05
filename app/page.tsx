@@ -31,18 +31,14 @@ export default function Home() {
 
   // Show loading state while checking session
   if (isLoading) {
-    return (
-      <div className="mt-[68px]">
-        <Loading />
-      </div>
-    );
+    return <Loading />;
   }
 
   return (
     <div>
       <Navbar />
       <CryptoBackground />
-      <main className="flex flex-col gap-8 items-center min-h-[calc(100vh-68px)] px-10 pt-[25vh] relative z-10 pointer-events-none">
+      <main className="flex flex-col gap-8 items-center min-h-[calc(100vh-68px)] px-10 pt-[15vh] sm:pt-[22vh] relative z-10 pointer-events-none">
         <BlurFade direction="up">
           <div className="text-center space-y-3 max-w-[30rem]">
             <h2 className="heading-2">

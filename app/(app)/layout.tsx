@@ -16,7 +16,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const fetchUser = async () => {
       try {
         const fetchedUser = await getUser();
-        console.log("fetchedUser", fetchedUser);
         if (!fetchedUser) {
           router.replace("/");
         } else {

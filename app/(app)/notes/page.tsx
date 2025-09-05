@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LoaderCircle, Plus, Search, Trash2, Info, Lock } from "lucide-react";
+import { LoaderCircle, Plus, Search, Trash2, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentSession } from "@/lib/appwrite/client";
+import { getUser } from "@/lib/appwrite/client";
 import { formatDate } from "@/lib/utils";
 import {
   createNote,
@@ -73,11 +73,15 @@ export default function NotesPage() {
     const fetchData = async () => {
       try {
         // Get current user
-        const session = await getCurrentSession();
-        setUser(session.userId);
+        const fetchedUser = await getUser();
+        if (!fetchedUser) {
+          router.replace("/");
+          return;
+        }
+        setUser(fetchedUser.$id);
 
         // Get notes
-        const fetched = await getNotes(session.userId);
+        const fetched = await getNotes(fetchedUser.$id);
 
         // Decrypt the notes
         const decryptedNotes = await Promise.all(fetched.map(decryptNote));

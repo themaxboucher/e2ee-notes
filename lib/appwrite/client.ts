@@ -32,18 +32,6 @@ export async function loginWithMagicLink(userId: string, secret: string) {
   }
 }
 
-export async function getCurrentSession() {
-  try {
-    const result = await account.getSession({
-      sessionId: "current",
-    });
-    return result;
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-}
-
 export async function logout() {
   try {
     const result = await account.deleteSession({ sessionId: "current" });
@@ -59,8 +47,7 @@ export async function getUser() {
     const result = await account.get();
     return result;
   } catch (error) {
-    console.error(error);
-    throw error;
+    return false;
   }
 }
 

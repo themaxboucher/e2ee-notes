@@ -3,7 +3,7 @@
 import AuthForm from "@/components/AuthForm";
 import { BlurFade } from "@/components/magicui/blur-fade";
 import { useEffect, useState } from "react";
-import { getCurrentSession } from "@/lib/appwrite/client";
+import { getUser } from "@/lib/appwrite/client";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Loading from "@/components/Loading";
@@ -14,20 +14,19 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const handleGetCurrentSession = async () => {
+    const checkAuthentication = async () => {
       try {
-        const session = await getCurrentSession();
-        if (session) {
+        const fetchedUser = await getUser();
+        if (fetchedUser) {
           router.replace("/notes");
         }
       } catch (error) {
         console.error("Session check error:", error);
-        // User is not authenticated, stay on homepage
       } finally {
         setIsLoading(false);
       }
     };
-    handleGetCurrentSession();
+    checkAuthentication();
   }, [router]);
 
   // Show loading state while checking session

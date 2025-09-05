@@ -50,11 +50,13 @@ export default function AuthForm() {
           {!loading && "Continue"}
         </Button>
         {error && <FormAlert message={error} type="error" />}
-        {success && (
+        {success ? (
           <FormAlert
             message="Check your email for a login link."
             type="success"
           />
+        ) : (
+          <div className="h-[42px] w-full" />
         )}
       </form>
     </Form>

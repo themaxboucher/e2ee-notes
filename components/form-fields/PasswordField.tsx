@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FormFieldWrapper } from "./FormFieldWrapper";
@@ -10,6 +10,7 @@ interface PasswordFieldProps {
   label?: string;
   placeholder?: string;
   className?: string;
+  description?: ReactNode;
 }
 
 export function PasswordField({
@@ -18,6 +19,7 @@ export function PasswordField({
   label,
   placeholder,
   className,
+  description,
 }: PasswordFieldProps) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -27,6 +29,7 @@ export function PasswordField({
       name={name}
       label={label}
       className={className}
+      description={description}
     >
       <div className="relative">
         <Input

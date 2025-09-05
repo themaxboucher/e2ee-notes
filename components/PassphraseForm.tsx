@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { Form } from "./ui/form";
 import FormAlert from "./FormAlert";
@@ -19,31 +19,41 @@ import {
 import { updateUserPrefs } from "@/lib/appwrite/client";
 import { useRouter } from "next/navigation";
 import { useDek } from "./DekProvider";
+import CreatePasswordField from "./form-fields/CreatePasswordField";
+import { evaluatePasswordStrength } from "@/lib/utils";
 
-const formSchema = z.object({
-  passphrase: z
-    .string()
-    .min(8, { message: "Passphrase must be at least 8 characters" }),
+const baseSchema = z.object({
+  passphrase: z.string().min(1, { message: "Passphrase is required" }),
 });
 
 export default function PassphraseForm({
   userPrefs,
 }: {
-  userPrefs?: UserPrefs;
+  userPrefs?: UserPrefs; // If the user already has a passphrase
 }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
   const { set } = useDek();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const schema = useMemo(() => {
+    if (userPrefs) return baseSchema;
+    return z.object({
+      passphrase: baseSchema.shape.passphrase.refine(
+        (value) => evaluatePasswordStrength(value) === "strong",
+        { message: "Passphrase must be strong" }
+      ),
+    });
+  }, [userPrefs]);
+
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
     defaultValues: {
       passphrase: "",
     },
   });
 
-  async function onSubmitHandler(data: z.infer<typeof formSchema>) {
+  async function onSubmitHandler(data: z.infer<typeof schema>) {
     setLoading(true);
     try {
       // User already has a passphrase
@@ -106,12 +116,28 @@ export default function PassphraseForm({
         className="grid gap-4 w-full max-w-xs"
         onSubmit={form.handleSubmit(onSubmitHandler)}
       >
-        <PasswordField
-          form={form}
-          name="passphrase"
-          placeholder="Enter your passphrase"
-        />
-        <Button type="submit" className="w-full" disabled={loading}>
+        {userPrefs ? (
+          <PasswordField
+            form={form}
+            name="passphrase"
+            placeholder="Enter your passphrase"
+          />
+        ) : (
+          <CreatePasswordField
+            form={form}
+            name="passphrase"
+            placeholder="Enter your passphrase"
+          />
+        )}
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={
+            loading ||
+            (!userPrefs &&
+              evaluatePasswordStrength(form.watch("passphrase")) !== "strong")
+          }
+        >
           {loading && <LoaderCircle className="h-4 w-4 animate-spin" />}
           {!loading && userPrefs ? "Go to notes" : "Create passphrase"}
         </Button>

@@ -79,7 +79,13 @@ function VerifyContent() {
 // This is required in Next.js 15 when using useSearchParams() to prevent build errors
 export default function VerifyPage() {
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense
+      fallback={
+        <div className="mt-[68px]">
+          <Loading />
+        </div>
+      }
+    >
       <VerifyContent />
     </Suspense>
   );
